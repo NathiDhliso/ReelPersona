@@ -1,0 +1,133 @@
+name: Deploy ReelPersona to AWS Amplify
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'ReelPersona/**'
+      - 'packages/**'
+      - '.github/workflows/deploy-reelpersona.yml'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+  APP_NAME: 'ReelPersona'
+  SUBDOMAIN: 'reelpersona'
+
+jobs:
+  deploy-reelpersona:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+    
+    - name: Install workspace dependencies
+      run: |
+        npm ci
+        npm run build:packages
+    
+    - name: Install ReelPersona dependencies
+      working-directory: ./ReelPersona
+      run: npm ci
+    
+    - name: Build ReelPersona
+      working-directory: ./ReelPersona
+      run: npm run build
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
+        VITE_ELEVENLABS_API_KEY: ${{ secrets.VITE_ELEVENLABS_API_KEY }}
+        VITE_HOME_URL: https://www.reelapps.co.za
+        VITE_APP_URL: https://reelpersona.reelapps.co.za
+        VITE_SSO_ENABLED: true
+        VITE_MAIN_DOMAIN: reelapps.co.za
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+    
+    - name: Deploy to AWS Amplify
+      run: |
+        # Create or update Amplify app
+        aws amplify create-app \
+          --name "reelpersona-reelapps" \
+          --description "ReelPersona - Personality assessment tool" \
+          --platform WEB \
+          --custom-rules '[
+            {
+              "source": "https://reelpersona.reelapps.co.za",
+              "target": "https://reelpersona.reelapps.co.za",
+              "status": "200",
+              "condition": null
+            },
+            {
+              "source": "/<*>",
+              "target": "/index.html",
+              "status": "200",
+              "condition": null
+            }
+          ]' \
+          --environment-variables '{
+            "VITE_SUPABASE_URL": "${{ secrets.VITE_SUPABASE_URL }}",
+            "VITE_SUPABASE_ANON_KEY": "${{ secrets.VITE_SUPABASE_ANON_KEY }}",
+            "VITE_GEMINI_API_KEY": "${{ secrets.VITE_GEMINI_API_KEY }}",
+            "VITE_ELEVENLABS_API_KEY": "${{ secrets.VITE_ELEVENLABS_API_KEY }}",
+            "VITE_HOME_URL": "https://www.reelapps.co.za",
+            "VITE_APP_URL": "https://reelpersona.reelapps.co.za",
+            "VITE_SSO_ENABLED": "true",
+            "VITE_MAIN_DOMAIN": "reelapps.co.za"
+          }' || true
+        
+        # Get app ID
+        APP_ID=$(aws amplify list-apps --query "apps[?name=='reelpersona-reelapps'].appId" --output text)
+        echo "APP_ID=$APP_ID" >> $GITHUB_ENV
+        
+        # Create branch if it doesn't exist
+        aws amplify create-branch \
+          --app-id $APP_ID \
+          --branch-name main \
+          --description "Main production branch" || true
+        
+        # Update custom domain
+        aws amplify create-domain-association \
+          --app-id $APP_ID \
+          --domain-name reelapps.co.za \
+          --sub-domain-settings '[
+            {
+              "prefix": "reelpersona",
+              "branchName": "main"
+            }
+          ]' || true
+    
+    - name: Upload build to Amplify
+      run: |
+        # Create deployment
+        DEPLOYMENT_ID=$(aws amplify start-deployment \
+          --app-id $APP_ID \
+          --branch-name main \
+          --source-url "https://github.com/${{ github.repository }}" \
+          --query 'jobSummary.jobId' --output text)
+        
+        echo "Deployment started with ID: $DEPLOYMENT_ID"
+        
+        # Wait for deployment to complete
+        aws amplify wait job-completed \
+          --app-id $APP_ID \
+          --branch-name main \
+          --job-id $DEPLOYMENT_ID
+    
+    - name: Verify deployment
+      run: |
+        echo "✅ ReelPersona deployed successfully to https://reelpersona.reelapps.co.za"
+        curl -f https://reelpersona.reelapps.co.za || echo "❌ Deployment verification failed" 
