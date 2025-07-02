@@ -51,6 +51,8 @@ import {
 import { type ConflictStyle } from '../lib/simulation';
 import styles from './ReelPersona.module.css';
 import { useNavigate } from 'react-router-dom';
+import { saveAssessment } from '../lib/assessment.service';
+import { useAuthStore } from '../lib/auth';
 
 // Types
 interface ChatMessage {
@@ -147,6 +149,7 @@ const ReelPersona: React.FC = () => {
   const pendingSpeechRef = useRef<string>('');
 
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   // Initialize ElevenLabs
   useEffect(() => {
@@ -559,6 +562,16 @@ const ReelPersona: React.FC = () => {
           speakText(`Your personality analysis is complete, ${userProfile.firstName}. ${analysis.alignmentSummary}`);
         }, 1000);
       }
+
+      if (user?.id) {
+        try {
+          await saveAssessment(analysis, user.id);
+          console.log('✅ Assessment saved to database');
+        } catch (err) {
+          console.error('Failed to save assessment', err);
+        }
+      }
+
     } catch (error) {
       console.error('Error generating analysis:', error);
       addMessage(
@@ -592,6 +605,14 @@ const ReelPersona: React.FC = () => {
       
       setResults(fallbackAnalysis);
       setCurrentStep('results');
+
+      if (user?.id) {
+        try {
+          await saveAssessment(fallbackAnalysis, user.id);
+        } catch (err) {
+          console.error('Failed to save fallback assessment', err);
+        }
+      }
     } finally {
       setIsAnalyzing(false);
     }

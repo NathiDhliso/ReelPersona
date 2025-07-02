@@ -55,4 +55,60 @@
 
 .primaryButton:hover {
   transform: translateY(-2px);
+}
+
+.list {
+  margin-top: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.item {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md) var(--spacing-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.itemMeta {
+  display: flex;
+  flex-direction: column;
+}
+
+.itemDate {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.itemActions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.actionButton {
+  border: none;
+  padding: 6px 12px;
+  border-radius: var(--border-radius);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.viewButton {
+  background: var(--gradient-primary);
+  color: var(--text-inverse);
+}
+
+.actionButton:hover {
+  opacity: 0.9;
+}
+
+.deleteButton {
+  background: var(--error-color);
+  color: var(--text-inverse);
 } 
