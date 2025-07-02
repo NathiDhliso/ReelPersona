@@ -50,6 +50,7 @@ import {
 } from '../lib/wake-word.service';
 import { type ConflictStyle } from '../lib/simulation';
 import styles from './ReelPersona.module.css';
+import { useNavigate } from 'react-router-dom';
 
 // Types
 interface ChatMessage {
@@ -144,6 +145,8 @@ const ReelPersona: React.FC = () => {
   
   const chatMessagesRef = useRef<HTMLDivElement>(null);
   const pendingSpeechRef = useRef<string>('');
+
+  const navigate = useNavigate();
 
   // Initialize ElevenLabs
   useEffect(() => {
@@ -272,6 +275,16 @@ const ReelPersona: React.FC = () => {
       }
     }
   }, [currentStep, voiceSettings.wakeWordEnabled]);
+
+  // Auto-redirect to dashboard 10 s after results are shown
+  useEffect(() => {
+    if (currentStep === 'results') {
+      const timer = setTimeout(() => {
+        navigate('/dashboard');
+      }, 10000); // 10 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, navigate]);
 
   // ElevenLabs voice functions
   const speakText = async (text: string, messageId?: string) => {
@@ -450,8 +463,8 @@ const ReelPersona: React.FC = () => {
     // Update conversation history
     const newHistory = [
       ...conversationContext.conversationHistory,
-      { role: 'user' as const, content: input }
-    ];
+      { role: 'user' as const, parts: [{ text: input }] }
+    ] as ConversationContext['conversationHistory'];
 
     setIsTyping(true);
 
@@ -463,7 +476,7 @@ const ReelPersona: React.FC = () => {
       const aiResponse = await generateAIResponse(inputToProcess, {
         ...conversationContext,
         conversationHistory: newHistory
-      }, justCause);
+      }, justCause, userProfile.currentRole || 'Professional');
 
       setIsTyping(false);
 
@@ -490,8 +503,8 @@ const ReelPersona: React.FC = () => {
       // Update conversation context
       const updatedHistory = [
         ...newHistory,
-        { role: 'assistant' as const, content: aiResponse.content }
-      ];
+        { role: 'model' as const, parts: [{ text: aiResponse.content }] }
+      ] as ConversationContext['conversationHistory'];
 
       // Update user profile based on stage
       let updatedProfile = { ...conversationContext.userProfile };
@@ -536,7 +549,7 @@ const ReelPersona: React.FC = () => {
     );
 
     try {
-      const analysis = await generatePersonalityAnalysis(conversationContext, justCause);
+      const analysis = await generatePersonalityAnalysis(conversationContext, justCause, userProfile.currentRole || 'Professional');
       setResults(analysis);
       setCurrentStep('results');
 
@@ -570,7 +583,11 @@ const ReelPersona: React.FC = () => {
           greenFlags: ["Engaged thoughtfully throughout the assessment", "Showed genuine interest in self-discovery"],
           redFlags: ["Limited data due to technical issues"]
         },
-        alignmentSummary: `${userProfile.firstName} demonstrates strong collaborative instincts and genuine engagement in professional development conversations. Shows good potential for team-based roles with proper development support.`
+        alignmentSummary: `${userProfile.firstName} demonstrates strong collaborative instincts and genuine engagement in professional development conversations. Shows good potential for team-based roles with proper development support.`,
+        jobPerformanceIndicators: {
+          potentialStrengths: ["Collaboration", "Adaptability"],
+          potentialChallenges: ["Needs consistent feedback", "Limited conflict data"]
+        }
       };
       
       setResults(fallbackAnalysis);
@@ -875,6 +892,12 @@ const ReelPersona: React.FC = () => {
           <MessageCircle size={20} />
           Begin Assessment with Sensa
         </button>
+        <button
+          className={styles.secondaryButton}
+          onClick={() => navigate('/dashboard')}
+        >
+          Skip assessment – go to Dashboard
+        </button>
       </div>
     </div>
   );
@@ -1123,15 +1146,30 @@ const ReelPersona: React.FC = () => {
             <p>{results.alignmentSummary}</p>
             
             <div className={styles.actionButtons}>
-              <button className={styles.primaryButton}>
+              <button
+                className={styles.primaryButton}
+                onClick={() => navigate('/portfolio', { state: { profile: results } })}
+              >
                 <ExternalLink size={20} />
                 View Full Portfolio
               </button>
-              <button className={styles.secondaryButton}>
+              <button
+                className={styles.secondaryButton}
+                onClick={() => navigate('/download', { state: { profile: results } })}
+              >
                 Download Report
               </button>
-              <button className={styles.tertiaryButton}>
+              <button
+                className={styles.tertiaryButton}
+                onClick={() => navigate('/schedule', { state: { profile: results } })}
+              >
                 Schedule Follow-up
+              </button>
+              <button
+                className={styles.secondaryButton}
+                onClick={() => navigate('/dashboard')}
+              >
+                Go to Dashboard
               </button>
             </div>
 

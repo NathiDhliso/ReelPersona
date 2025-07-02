@@ -3,6 +3,11 @@ import { useAuthStore, initializeSupabase } from './lib/auth'
 import { AppWrapper } from './components/AppWrapper'
 import ReelPersona from './components/ReelPersona'
 import './index.css'
+import { Routes, Route } from 'react-router-dom'
+import PortfolioPage from './components/PortfolioPage'
+import DownloadPage from './components/DownloadPage'
+import SchedulePage from './components/SchedulePage'
+import DashboardPage from './components/DashboardPage'
 
 function App() {
   const {
@@ -100,7 +105,13 @@ function App() {
       onPasswordReset={sendPasswordResetEmail}
       isLoading={isLoading ?? false}
     >
-      <ReelPersona />
+      <Routes>
+        <Route path="/" element={<ReelPersona />} />
+        <Route path="/portfolio" element={<PortfolioPage />} />
+        <Route path="/download" element={<DownloadPage />} />
+        <Route path="/schedule" element={<SchedulePage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+      </Routes>
     </AppWrapper>
   );
 }
