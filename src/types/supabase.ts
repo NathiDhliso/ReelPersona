@@ -139,18 +139,27 @@ export type Database = {
           created_at: string | null
           id: string
           profile: Json | null
+          score_breakdown: Json | null
+          score_level: string | null
+          score_total: number | null
           user_id: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
           profile?: Json | null
+          score_breakdown?: Json | null
+          score_level?: string | null
+          score_total?: number | null
           user_id?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
           profile?: Json | null
+          score_breakdown?: Json | null
+          score_level?: string | null
+          score_total?: number | null
           user_id?: string | null
         }
         Relationships: []

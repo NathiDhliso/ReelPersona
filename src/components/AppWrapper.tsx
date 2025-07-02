@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, LogIn, UserPlus, Mail } from 'lucide-react';
+import GlobalHeader from './GlobalHeader';
 
 interface User {
   id: string;
@@ -187,6 +188,7 @@ export const AppWrapper: React.FC<AppWrapperProps> = ({
 
   return (
     <div className="min-h-screen bg-slate-900">
+      <GlobalHeader />
       {children}
     </div>
   );

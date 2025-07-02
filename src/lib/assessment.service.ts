@@ -1,6 +1,7 @@
 import { CandidatePersonaProfile } from './gemini.service';
 import { getSupabaseClient } from './auth';
 import type { Database } from '../types/supabase';
+import { calculateReelPassScore } from './score.service';
 
 type AssessmentsTable = Database['public']['Tables']['assessments'];
 type AssessmentInsert = AssessmentsTable['Insert'];
@@ -12,11 +13,14 @@ export const saveAssessment = async (
 ): Promise<void> => {
   const supabase = getSupabaseClient();
 
-  const payload: AssessmentInsert = {
+  const score = calculateReelPassScore(profile);
+  const payload: any = {
     user_id: userId,
-    // Cast because generated types expect Json
-    profile: profile as unknown as AssessmentInsert['profile'],
-  };
+    profile,
+    score_total: score.total,
+    score_breakdown: score.breakdown,
+    score_level: score.level,
+  } as any;
 
   const { error } = await supabase.from('assessments').insert(payload);
 

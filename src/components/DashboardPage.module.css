@@ -111,4 +111,13 @@
 .deleteButton {
   background: var(--error-color);
   color: var(--text-inverse);
+}
+
+.scoreBadge {
+  background: var(--accent-blue);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
 } 
